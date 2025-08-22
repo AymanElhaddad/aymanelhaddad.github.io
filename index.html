@@ -19,6 +19,8 @@
       --muted: #9ca3af;
       --accent: #22c55e;
       --link: #60a5fa;
+      --bar-bg: rgba(255,255,255,0.12);
+      --bar-fill: #22c55e;
     }
 
     html, body { height: 100%; margin: 0; padding: 0; }
@@ -79,6 +81,9 @@
     .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: var(--muted); font-size: 0.85rem; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 6px rgba(34,197,94,0.12); }
 
+    .progress { width: 100%; height: 10px; background: var(--bar-bg); border-radius: 999px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 1%; background: var(--bar-fill); transition: width .6s ease; }
+
     footer { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; color: var(--muted); font-size: 0.85rem; }
     a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -107,7 +112,7 @@
           <span data-i18n="lang-button">Language</span>
         </button>
         <nav class="lang" id="lang-menu" aria-label="Language switcher">
-          <button id="btn-en" data-lang="en" aria-pressed="true"><span class="flag">🇬🇧</span><span class="label">English</span></button>
+          <button id="btn-en" data-lang="en" aria-pressed="true"><span class="flag">🇨🇦</span><span class="label">English</span></button>
           <button id="btn-fr" data-lang="fr" aria-pressed="false"><span class="flag">🇫🇷</span><span class="label">Français</span></button>
           <button id="btn-ar" data-lang="ar" aria-pressed="false"><span class="flag">🇸🇦</span><span class="label">العربية</span></button>
         </nav>
@@ -115,7 +120,10 @@
     </header>
 
     <main>
-      <div class="pill"><span class="dot"></span><span data-i18n="status" id="progress">Live update in progress</span></div>
+      <div class="pill"><span class="dot"></span><span data-i18n="status" id="progress-text">Live update in progress</span></div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="1" aria-label="Site update progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
       <h1 data-i18n="title">Our website is under development & maintenance</h1>
       <p data-i18n="desc">We're improving DataQualification.com to serve you better. Thank you for your patience! Please check back soon.</p>
       <p data-i18n="contact">For urgent inquiries, contact us at <a href="mailto:aymanelhaddad@yahoo.com">aymanelhaddad@yahoo.com</a>.</p>
@@ -128,11 +136,13 @@
   </div>
 
   <script>
-    const startDate = new Date('2021-01-01'); // reference date
-    const today = new Date();
-    const daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-    let progress = 1 + daysPassed; // start at 1% then +1 per day
-    if(progress > 100) progress = 100;
+    // Progress: start 1% today, +1% every day after, capped at 100%
+    const startDate = new Date();
+    startDate.setHours(0,0,0,0); // normalize to midnight local time
+    const now = new Date();
+    const daysPassed = Math.floor((now.setHours(0,0,0,0) - startDate) / (1000 * 60 * 60 * 24));
+    let progress = 1 + Math.max(0, daysPassed);
+    if (progress > 100) progress = 100;
 
     const messages = {
       en: {
@@ -180,6 +190,9 @@
     const btnEn = document.getElementById('btn-en');
     const btnFr = document.getElementById('btn-fr');
     const btnAr = document.getElementById('btn-ar');
+    const progressText = document.getElementById('progress-text');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.querySelector('.progress');
 
     function setDir(lang){ app.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr'); }
 
@@ -195,7 +208,7 @@
       setDir(lang);
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if(key === 'lang-button') return;
+        if(key === 'lang-button') return; // handled separately
         const template = dict[key] || messages.en[key] || '';
         const rendered = template;
         if(/<a|<br|<strong|<em|<span/.test(rendered)){
@@ -219,15 +232,23 @@
 
     langToggle.addEventListener('click', toggleMenu);
 
+    // Close when clicking outside
     document.addEventListener('click', (e) => {
       if (!langMenu.contains(e.target) && !langToggle.contains(e.target)) closeMenu();
     });
 
+    // Initialize i18n
     const saved = localStorage.getItem('dq-lang');
     const browser = (navigator.language || 'en').slice(0,2);
     const initial = saved || (['en','fr','ar'].includes(browser) ? browser : 'en');
-
     applyI18n(initial);
+
+    // Apply progress bar state
+    progressBar.style.width = progress + '%';
+    const isRtl = app.getAttribute('dir') === 'rtl';
+    progressContainer.style.direction = isRtl ? 'rtl' : 'ltr';
+    const pb = document.querySelector('.progress');
+    pb.setAttribute('aria-valuenow', String(progress));
   </script>
 </body>
 </html>
