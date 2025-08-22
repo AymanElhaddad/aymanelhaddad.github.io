@@ -234,9 +234,15 @@
 
         .progress-bar {
             height: 100%;
-            width: 1%;
+            width: 0%;
             background: var(--bar-fill);
-            transition: width .6s ease;
+            transition: width 1.2s ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .progress-bar {
+                transition: none;
+            }
         }
 
         footer {
@@ -323,9 +329,13 @@
     </div>
 
     <script>
-        // Progress: start 1% today, +1% every day after, capped at 100%
-        const startDate = new Date();
-        startDate.setHours(0, 0, 0, 0); // normalize to midnight local time
+        // 👉 Change this date if you want a different start date, otherwise leave as null
+        // const customStartDate = null; // e.g., new Date('2025-08-22')
+        const customStartDate = new Date('2025-07-29');
+
+        // Progress: start 1% at chosen start date (or today), +1% each day, capped at 100%
+        const startDate = customStartDate ? new Date(customStartDate) : new Date();
+        startDate.setHours(0, 0, 0, 0);
         const now = new Date();
         const daysPassed = Math.floor((now.setHours(0, 0, 0, 0) - startDate) / (1000 * 60 * 60 * 24));
         let progress = 1 + Math.max(0, daysPassed);
@@ -419,7 +429,6 @@
 
         langToggle.addEventListener('click', toggleMenu);
 
-        // Close when clicking outside
         document.addEventListener('click', (e) => {
             if (!langMenu.contains(e.target) && !langToggle.contains(e.target)) closeMenu();
         });
@@ -430,12 +439,17 @@
         const initial = saved || (['en', 'fr', 'ar'].includes(browser) ? browser : 'en');
         applyI18n(initial);
 
-        // Apply progress bar state
-        progressBar.style.width = progress + '%';
+        // Animate progress bar on load
+        const targetWidth = progress + '%';
+        progressBar.style.width = '0%';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            progressBar.style.width = targetWidth;
+        }));
+
+        // ARIA & direction state
         const isRtl = app.getAttribute('dir') === 'rtl';
         progressContainer.style.direction = isRtl ? 'rtl' : 'ltr';
-        const pb = document.querySelector('.progress');
-        pb.setAttribute('aria-valuenow', String(progress));
+        document.querySelector('.progress').setAttribute('aria-valuenow', String(progress));
     </script>
 </body>
 
